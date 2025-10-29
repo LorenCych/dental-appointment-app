@@ -39,7 +39,9 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
-    && chmod -R 775 storage bootstrap/cache \
+    storage/app/public \
+    && chmod -R 777 storage \
+    && chmod -R 775 bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
 # Enable Apache mod_rewrite

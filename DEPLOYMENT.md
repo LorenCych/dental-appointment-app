@@ -56,8 +56,9 @@ IPROG_SMS_API_TOKEN=your-real-sms-api-token
 ### Logging
 
 ```
-LOG_CHANNEL=stack
+LOG_CHANNEL=stderr
 LOG_LEVEL=error
+LOG_STDERR_FORMATTER=Monolog\Formatter\JsonFormatter
 ```
 
 ## Deployment Steps
