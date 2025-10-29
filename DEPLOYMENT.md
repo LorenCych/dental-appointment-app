@@ -5,6 +5,7 @@
 Copy these environment variables to your Render.com Web Service:
 
 ### Application
+
 ```
 APP_NAME=LC Happy Care Dental Clinic
 APP_ENV=production
@@ -14,6 +15,7 @@ APP_URL=https://your-app-name.onrender.com
 ```
 
 ### Database (PostgreSQL)
+
 ```
 DB_CONNECTION=pgsql
 DB_HOST=your-render-postgres-host
@@ -24,6 +26,7 @@ DB_PASSWORD=your-db-password
 ```
 
 ### Session & Cache
+
 ```
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
@@ -32,6 +35,7 @@ QUEUE_CONNECTION=database
 ```
 
 ### Mail Configuration
+
 ```
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
@@ -44,11 +48,13 @@ MAIL_ENCRYPTION=tls
 ```
 
 ### SMS API
+
 ```
 IPROG_SMS_API_TOKEN=your-real-sms-api-token
 ```
 
 ### Logging
+
 ```
 LOG_CHANNEL=stack
 LOG_LEVEL=error
@@ -65,7 +71,7 @@ LOG_LEVEL=error
 
 ## Important Notes
 
-- Replace `your-app-name.onrender.com` with your actual Render app URL
-- Replace database credentials with your actual Render PostgreSQL details
-- Use Gmail App Password for MAIL_PASSWORD (not your regular password)
-- Add your real SMS API token for IPROG_SMS_API_TOKEN
+-   Replace `your-app-name.onrender.com` with your actual Render app URL
+-   Replace database credentials with your actual Render PostgreSQL details
+-   Use Gmail App Password for MAIL_PASSWORD (not your regular password)
+-   Add your real SMS API token for IPROG_SMS_API_TOKEN

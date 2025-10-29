@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Render.com build script for Laravel
 
+set -e  # Exit on any error
+
+echo "Making script executable..."
+chmod +x render-build.sh
+
 echo "Installing PHP dependencies..."
 composer install --no-dev --optimize-autoloader
 
