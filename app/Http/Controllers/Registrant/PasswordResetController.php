@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class PasswordResetController extends Controller
 {
@@ -54,7 +55,10 @@ class PasswordResetController extends Controller
 
             return back()->with('success', 'Password reset link has been sent to your email address! Please check your inbox and spam folder.');
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'Failed to send email. Please try again later or contact our clinic.']);
+            // Log the error for debugging
+            Log::error('Password reset email failed: ' . $e->getMessage());
+            
+            return back()->withErrors(['email' => 'Failed to send email. Error: ' . $e->getMessage() . '. Please check your email configuration or contact our clinic.']);
         }
     }
 

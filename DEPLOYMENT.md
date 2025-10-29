@@ -45,6 +45,38 @@ MAIL_PASSWORD=your-gmail-app-password
 MAIL_FROM_ADDRESS=your-email@gmail.com
 MAIL_FROM_NAME=LC Happy Care Dental Clinic
 MAIL_ENCRYPTION=tls
+MAIL_TIMEOUT=60
+```
+
+**Important Notes for Gmail:**
+
+-   Use your full Gmail address for MAIL_USERNAME
+-   Use a Gmail App Password (not your regular password) for MAIL_PASSWORD
+-   Enable 2-factor authentication on your Gmail account first
+-   Generate App Password: Google Account → Security → 2-Step Verification → App passwords
+
+### Alternative Mail Services (if Gmail doesn't work):
+
+**Mailtrap (Testing):**
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your-mailtrap-username
+MAIL_PASSWORD=your-mailtrap-password
+MAIL_ENCRYPTION=tls
+```
+
+**SendGrid:**
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.sendgrid.net
+MAIL_PORT=587
+MAIL_USERNAME=apikey
+MAIL_PASSWORD=your-sendgrid-api-key
+MAIL_ENCRYPTION=tls
 ```
 
 ### SMS API

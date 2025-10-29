@@ -188,15 +188,29 @@ class AccountController extends Controller
         Cache::put($cacheKey, $verificationCode, 900); // 15 minutes
 
         try {
-            // Send verification email for signup
-            Mail::send('emails.signup-verification-code', [
-                'email' => $email,
-                'verificationCode' => $verificationCode
-            ], function($message) use ($email) {
-                $message->to($email);
-                $message->subject('Welcome! Verify Your Email - LC Happy Care Dental Clinic');
-                $message->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            // Check if mail is properly configured
+            if (config('mail.mailers.smtp.host') && config('mail.mailers.smtp.username') && config('mail.mailers.smtp.password')) {
+                // Send verification email for signup
+                Mail::send('emails.signup-verification-code', [
+                    'email' => $email,
+                    'verificationCode' => $verificationCode
+                ], function($message) use ($email) {
+                    $message->to($email);
+                    $message->subject('Welcome! Verify Your Email - LC Happy Care Dental Clinic');
+                    $message->from(config('mail.from.address'), config('mail.from.name'));
+                });
+            } else {
+                // Log mail configuration issue
+                Log::warning('Mail not properly configured, verification code not sent', [
+                    'email' => $email,
+                    'has_host' => !empty(config('mail.mailers.smtp.host')),
+                    'has_username' => !empty(config('mail.mailers.smtp.username')),
+                    'has_password' => !empty(config('mail.mailers.smtp.password'))
+                ]);
+                
+                // In production, we might want to throw an error here
+                // For now, we'll continue but log the issue
+            }
 
             Log::info('Signup verification code sent', [
                 'email' => $email,
@@ -210,11 +224,25 @@ class AccountController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send signup verification code', [
                 'email' => $email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
+            // Provide more specific error messages
+            $errorMessage = 'Failed to send verification code. ';
+            if (str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), 'timeout')) {
+                $errorMessage .= 'Email service is temporarily unavailable. Please try again in a few minutes.';
+            } elseif (str_contains($e->getMessage(), 'authentication') || str_contains($e->getMessage(), 'login')) {
+                $errorMessage .= 'Email configuration error. Please contact support.';
+            } elseif (str_contains($e->getMessage(), 'invalid') && str_contains($e->getMessage(), 'email')) {
+                $errorMessage .= 'Invalid email address format.';
+            } else {
+                $errorMessage .= 'Please check your email address and try again.';
+            }
+            
             return response()->json([
-                'error' => 'Failed to send verification code. Please try again.'
+                'error' => $errorMessage,
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
