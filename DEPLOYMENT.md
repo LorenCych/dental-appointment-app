@@ -55,16 +55,33 @@ MAIL_TIMEOUT=60
 -   Enable 2-factor authentication on your Gmail account first
 -   Generate App Password: Google Account → Security → 2-Step Verification → App passwords
 
-### Alternative Mail Services (if Gmail doesn't work):
+### Alternative Mail Services (Recommended for Production):
 
-**Mailtrap (Testing):**
+**Brevo API (Recommended - bypasses SMTP blocks):**
+
+```
+BREVO_API_KEY=your-brevo-api-key
+MAIL_FROM_ADDRESS=your-verified-email@domain.com
+MAIL_FROM_NAME=LC Happy Care Dental Clinic
+```
+
+**Steps to get Brevo API key:**
+
+1. Sign up at https://brevo.com
+2. Go to Account → SMTP & API → API Keys
+3. Click "Generate a new API key"
+4. Copy the API key and use it as BREVO_API_KEY
+
+**Brevo SMTP (if API doesn't work):**
 
 ```
 MAIL_MAILER=smtp
-MAIL_HOST=sandbox.smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USERNAME=your-mailtrap-username
-MAIL_PASSWORD=your-mailtrap-password
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=your-brevo-email@domain.com
+MAIL_PASSWORD=your-brevo-smtp-key
+MAIL_FROM_ADDRESS=your-verified-email@domain.com
+MAIL_FROM_NAME=LC Happy Care Dental Clinic
 MAIL_ENCRYPTION=tls
 ```
 
@@ -76,6 +93,17 @@ MAIL_HOST=smtp.sendgrid.net
 MAIL_PORT=587
 MAIL_USERNAME=apikey
 MAIL_PASSWORD=your-sendgrid-api-key
+MAIL_ENCRYPTION=tls
+```
+
+**Mailtrap (Testing only):**
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your-mailtrap-username
+MAIL_PASSWORD=your-mailtrap-password
 MAIL_ENCRYPTION=tls
 ```
 

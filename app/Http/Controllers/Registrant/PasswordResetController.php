@@ -43,22 +43,87 @@ class PasswordResetController extends Controller
         );
 
         try {
-            // Send reset email
-            Mail::send('emails.registrant-password-reset', [
-                'user' => $user,
-                'resetUrl' => $resetUrl
-            ], function($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Password Reset Request - LC Happy Care Dental Clinic');
-                $message->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            // Try using Brevo API if available, otherwise fall back to SMTP
+            if (env('BREVO_API_KEY')) {
+                $this->sendPasswordResetViaBrevoAPI($user, $resetUrl);
+            } else {
+                // Send reset email
+                Mail::send('emails.registrant-password-reset', [
+                    'user' => $user,
+                    'resetUrl' => $resetUrl
+                ], function($message) use ($user) {
+                    $message->to($user->email);
+                    $message->subject('Password Reset Request - LC Happy Care Dental Clinic');
+                    $message->from(config('mail.from.address'), config('mail.from.name'));
+                });
+            }
 
             return back()->with('success', 'Password reset link has been sent to your email address! Please check your inbox and spam folder.');
         } catch (\Exception $e) {
             // Log the error for debugging
             Log::error('Password reset email failed: ' . $e->getMessage());
             
-            return back()->withErrors(['email' => 'Failed to send email. Error: ' . $e->getMessage() . '. Please check your email configuration or contact our clinic.']);
+            return back()->withErrors(['email' => 'Unable to send password reset email. Please try again later.']);
+        }
+    }
+
+    private function sendPasswordResetViaBrevoAPI($user, $resetUrl)
+    {
+        $apiKey = env('BREVO_API_KEY');
+        
+        if (!$apiKey) {
+            throw new \Exception('Brevo API key not configured');
+        }
+
+        $htmlContent = view('emails.registrant-password-reset', [
+            'user' => $user,
+            'resetUrl' => $resetUrl
+        ])->render();
+
+        $data = [
+            'sender' => [
+                'name' => 'LC Happy Care Dental Clinic',
+                'email' => env('MAIL_FROM_ADDRESS', 'noreply@lchappycare.com')
+            ],
+            'to' => [
+                [
+                    'email' => $user->email,
+                    'name' => $user->first_name . ' ' . $user->last_name
+                ]
+            ],
+            'subject' => 'Password Reset Request - LC Happy Care Dental Clinic',
+            'htmlContent' => $htmlContent
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.brevo.com/v3/smtp/email');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 201) {
+            $error = json_decode($response, true);
+            throw new \Exception('Brevo API error: ' . ($error['message'] ?? 'Unknown error'));
+        }
+
+        Log::info('Password reset email sent via Brevo API', [
+            'email' => $user->email,
+            'response' => $response
+        ]);
+    }
+
+    /**
+     * Show password reset form
+     */
         }
     }
 

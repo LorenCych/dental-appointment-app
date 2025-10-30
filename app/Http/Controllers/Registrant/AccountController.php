@@ -188,8 +188,10 @@ class AccountController extends Controller
         Cache::put($cacheKey, $verificationCode, 900); // 15 minutes
 
         try {
-            // Check if mail is properly configured
-            if (config('mail.mailers.smtp.host') && config('mail.mailers.smtp.username') && config('mail.mailers.smtp.password')) {
+            // Try using Brevo API if available, otherwise fall back to SMTP
+            if (env('BREVO_API_KEY')) {
+                $this->sendEmailViaBrevoAPI($email, $verificationCode, 'signup');
+            } elseif (config('mail.mailers.smtp.host') && config('mail.mailers.smtp.username') && config('mail.mailers.smtp.password')) {
                 // Send verification email for signup
                 Mail::send('emails.signup-verification-code', [
                     'email' => $email,
@@ -203,13 +205,13 @@ class AccountController extends Controller
                 // Log mail configuration issue
                 Log::warning('Mail not properly configured, verification code not sent', [
                     'email' => $email,
+                    'has_brevo_api' => !empty(env('BREVO_API_KEY')),
                     'has_host' => !empty(config('mail.mailers.smtp.host')),
                     'has_username' => !empty(config('mail.mailers.smtp.username')),
                     'has_password' => !empty(config('mail.mailers.smtp.password'))
                 ]);
                 
-                // In production, we might want to throw an error here
-                // For now, we'll continue but log the issue
+                throw new \Exception('No email service configured. Please set up Brevo API key or SMTP settings.');
             }
 
             Log::info('Signup verification code sent', [
@@ -245,6 +247,65 @@ class AccountController extends Controller
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
+    }
+
+    private function sendEmailViaBrevoAPI($email, $verificationCode, $type = 'signup')
+    {
+        $apiKey = env('BREVO_API_KEY');
+        
+        if (!$apiKey) {
+            throw new \Exception('Brevo API key not configured');
+        }
+
+        $subject = $type === 'signup' ? 
+            'Welcome! Verify Your Email - LC Happy Care Dental Clinic' : 
+            'Account Verification Code - LC Happy Care Dental Clinic';
+
+        $htmlContent = view('emails.' . ($type === 'signup' ? 'signup-verification-code' : 'verification-code'), [
+            'email' => $email,
+            'verificationCode' => $verificationCode
+        ])->render();
+
+        $data = [
+            'sender' => [
+                'name' => 'LC Happy Care Dental Clinic',
+                'email' => env('MAIL_FROM_ADDRESS', 'noreply@lchappycare.com')
+            ],
+            'to' => [
+                [
+                    'email' => $email,
+                    'name' => explode('@', $email)[0] // Use email username as name
+                ]
+            ],
+            'subject' => $subject,
+            'htmlContent' => $htmlContent
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.brevo.com/v3/smtp/email');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'api-key: ' . $apiKey
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 201) {
+            $error = json_decode($response, true);
+            throw new \Exception('Brevo API error: ' . ($error['message'] ?? 'Unknown error'));
+        }
+
+        Log::info('Email sent via Brevo API', [
+            'email' => $email,
+            'type' => $type,
+            'response' => $response
+        ]);
     }
 
     public function sendVerificationCode(Request $request)
