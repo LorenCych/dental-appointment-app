@@ -214,7 +214,7 @@
             console.log('Sending verification code request to:', '{{ route("signup.send-verification-code") }}');
             console.log('Email:', emailValue);
             
-            fetch('{{ route("signup.send-verification-code") }}', {
+            fetch('{{ str_replace('http://', 'https://', route("signup.send-verification-code")) }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

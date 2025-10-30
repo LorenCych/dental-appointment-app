@@ -20,8 +20,11 @@ php artisan migrate --force || {
     echo "Migration failed, likely due to existing tables. Continuing..."
 }
 
-# Cache configuration for production
-echo "Caching configuration..."
+# Clear and cache configuration for production
+echo "Clearing old configuration cache..."
+php artisan config:clear
+
+echo "Caching fresh configuration..."
 php artisan config:cache
 php artisan route:cache  
 php artisan view:cache
