@@ -325,15 +325,20 @@ class AccountController extends Controller
         Cache::put($cacheKey, $verificationCode, 600); // 10 minutes
 
         try {
-            // Send verification email
-            Mail::send('emails.verification-code', [
-                'user' => $user,
-                'verificationCode' => $verificationCode
-            ], function($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Account Verification Code - LC Happy Care Dental Clinic');
-                $message->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            // Try using Brevo API if available, otherwise fall back to SMTP
+            if (env('BREVO_API_KEY')) {
+                $this->sendEmailViaBrevoAPI($user->email, $verificationCode, 'account');
+            } else {
+                // Send verification email
+                Mail::send('emails.verification-code', [
+                    'user' => $user,
+                    'verificationCode' => $verificationCode
+                ], function($message) use ($user) {
+                    $message->to($user->email);
+                    $message->subject('Account Verification Code - LC Happy Care Dental Clinic');
+                    $message->from(config('mail.from.address'), config('mail.from.name'));
+                });
+            }
 
             Log::info('Verification code sent', [
                 'user_id' => $user->id,
@@ -348,11 +353,26 @@ class AccountController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send verification code', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
+            // Provide more specific error messages
+            $errorMessage = 'Failed to send verification code. ';
+            if (str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), 'timeout')) {
+                $errorMessage .= 'Email service is temporarily unavailable. Please try again in a few minutes.';
+            } elseif (str_contains($e->getMessage(), 'authentication') || str_contains($e->getMessage(), 'login')) {
+                $errorMessage .= 'Email configuration error. Please contact support.';
+            } elseif (str_contains($e->getMessage(), 'Brevo API')) {
+                $errorMessage .= 'Email service error: ' . $e->getMessage();
+            } else {
+                $errorMessage .= 'Please check your email address and try again.';
+            }
+            
             return response()->json([
-                'error' => 'Failed to send verification code. Please try again.'
+                'error' => $errorMessage,
+                'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
