@@ -122,12 +122,6 @@ class PasswordResetController extends Controller
     }
 
     /**
-     * Show password reset form
-     */
-        }
-    }
-
-    /**
      * Show the password reset form
      */
     public function showResetForm(Request $request)
