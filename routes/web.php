@@ -49,6 +49,9 @@ Route::post('/contact', [App\Http\Controllers\ContactController::class, 'submit'
 // ✅ Account creation route (public - no auth needed)
 Route::post('/registrant/account/create', [AccountController::class, 'create'])->name('registrant.account.create');
 Route::post('/signup/send-verification-code', [AccountController::class, 'sendSignupVerificationCode'])->name('signup.send-verification-code');
+Route::get('/signup/test', function() {
+    return response()->json(['message' => 'Signup routes are working', 'timestamp' => now()]);
+})->name('signup.test');
 
 // Login route
 Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');

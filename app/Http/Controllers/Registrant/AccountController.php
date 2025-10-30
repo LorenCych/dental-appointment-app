@@ -164,9 +164,16 @@ class AccountController extends Controller
 
     public function sendSignupVerificationCode(Request $request)
     {
+        Log::info('Signup verification code request received', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'all_input' => $request->all()
+        ]);
+        
         $email = $request->input('email');
         
         if (!$email) {
+            Log::warning('Signup verification: Email missing', ['request_data' => $request->all()]);
             return response()->json(['error' => 'Email address is required.'], 400);
         }
 

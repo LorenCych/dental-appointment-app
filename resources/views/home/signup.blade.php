@@ -211,18 +211,37 @@
             codeStatus.className = 'form-text text-info';
             
             // Make AJAX request
+            console.log('Sending verification code request to:', '{{ route("signup.send-verification-code") }}');
+            console.log('Email:', emailValue);
+            
             fetch('{{ route("signup.send-verification-code") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     email: emailValue
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    // Handle HTTP errors
+                    return response.text().then(text => {
+                        console.error('HTTP Error Response:', text);
+                        throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
+                    });
+                }
+                
+                return response.json();
+            })
             .then(data => {
+                console.log('Success response:', data);
+                
                 if (data.success) {
                     codeStatus.textContent = 'Welcome! Verification code sent to your email. Check your inbox and spam folder.';
                     codeStatus.className = 'form-text text-success';
@@ -235,14 +254,35 @@
                     // Focus on verification code input
                     verificationCodeInput.focus();
                 } else {
+                    console.error('API Error:', data);
                     codeStatus.textContent = data.error || 'Failed to send verification code. Please try again.';
                     codeStatus.className = 'form-text text-danger';
                     resetSendButton();
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                codeStatus.textContent = 'Network error. Please check your connection and try again.';
+                console.error('Fetch Error:', error);
+                
+                // Provide more specific error messages
+                let errorMessage = 'Failed to send verification code. ';
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'Unable to connect to server. Please check your internet connection.';
+                } else if (error.message.includes('NetworkError')) {
+                    errorMessage += 'Network connection failed. Please try again.';
+                } else if (error.message.includes('HTTP 404')) {
+                    errorMessage += 'Service not found. Please contact support.';
+                } else if (error.message.includes('HTTP 500')) {
+                    errorMessage += 'Server error. Please try again in a moment.';
+                } else if (error.message.includes('HTTP 422')) {
+                    errorMessage += 'Invalid email format or missing information.';
+                } else if (error.message.includes('HTTP 419')) {
+                    errorMessage += 'Session expired. Please refresh the page and try again.';
+                } else {
+                    errorMessage += error.message || 'Please try again or contact support if the problem persists.';
+                }
+                
+                codeStatus.textContent = errorMessage;
                 codeStatus.className = 'form-text text-danger';
                 resetSendButton();
             });
