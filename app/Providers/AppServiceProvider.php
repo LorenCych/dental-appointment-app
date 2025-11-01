@@ -21,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Force HTTPS URLs in production
         if (config('app.env') === 'production') {
+            // Trust proxy headers from Render.com
+            $this->app['request']->server->set('HTTPS', 'on');
+            
             \Illuminate\Support\Facades\URL::forceScheme('https');
             \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
         }
